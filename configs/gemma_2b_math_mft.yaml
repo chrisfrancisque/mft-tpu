@@ -1,0 +1,37 @@
+# configs/gemma_2b_math_mft.yaml
+experiment_type: mft
+domain: math
+base_model_path: "./outputs/fft/math/gemma_2b_math_fft_test/final_fft_model"
+
+model:
+  model_name: "google/gemma-2b"
+  max_seq_length: 512
+
+mask:
+  mask_type: "local"
+  sparsity_ratio: 0.1
+  masked_layers: [4, 5, 6, 7]
+  apply_to_attention: true
+  apply_to_mlp: true
+  mask_learning_rate: 0.001
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "gemma_2b_math_mft_test"
+  num_train_epochs: 1
+  learning_rate: 1.0e-5  # Lower LR for MFT
+  warmup_ratio: 0.03
+  logging_steps: 1
+  save_steps: 50
+
+data:
+  dataset_mixer:
+    "gsm8k": 1.0
+  max_train_samples: 100
+  max_eval_samples: 20
+
+tpu:
+  use_tpu: false
+  batch_size_per_core: 2
+  gradient_accumulation_steps: 1
+  mixed_precision: "no"

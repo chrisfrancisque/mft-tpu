@@ -1,0 +1,56 @@
+# Create .gitignore in your project root
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Model and data caches
+model_cache/
+data_cache/
+outputs/
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+
+# Datasets
+data/
+datasets/
+*.json
+*.jsonl
+*.csv
+*.txt
+
+# Logs
+logs/
+*.log
+wandb/
+tensorboard/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment
+.env
+.env.local
+
+# TPU specific
+libtpu/
+tpu_logs/
+EOF

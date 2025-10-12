@@ -1,0 +1,32 @@
+# configs/gemma_2b_math_fft.yaml
+experiment_type: fft
+domain: math
+base_model_path: null
+
+model:
+  model_name: "google/gemma-2b"
+  max_seq_length: 512  # Reduced for local testing
+  cache_dir: "./model_cache"
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "gemma_2b_math_fft_test"
+  num_train_epochs: 1  # Just 1 epoch for testing
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.03
+  logging_steps: 1
+  save_steps: 50
+  eval_steps: 50
+
+data:
+  dataset_mixer:
+    "gsm8k": 1.0  # Just use GSM8K for testing
+  max_train_samples: 100  # Small sample for testing
+  max_eval_samples: 20
+  preprocessing_num_workers: 2
+
+tpu:
+  use_tpu: false  # CPU for local testing
+  batch_size_per_core: 2  # Small batch for local
+  gradient_accumulation_steps: 1
+  mixed_precision: "no"  # No mixed precision for CPU

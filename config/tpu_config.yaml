@@ -1,0 +1,47 @@
+# config/tpu_config.yaml
+# Sample configuration for MFT training on TPU
+
+experiment_type: mft  # fft or mft
+domain: math
+base_model_path: null  # Will be set to FFT model path for MFT
+
+model:
+  model_name: "google/gemma-2b"
+  model_revision: "main"
+  max_seq_length: 2048
+  cache_dir: "./model_cache"
+
+mask:
+  mask_type: "local"
+  sparsity_ratio: 0.1
+  masked_layers: [4, 5, 6, 7]
+  apply_to_attention: true
+  apply_to_mlp: true
+  mask_learning_rate: 0.001
+  straight_through_estimator: true
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "gemma_2b_math_mft"
+  num_train_epochs: 2
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.03
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 500
+
+data:
+  dataset_mixer:
+    "gsm8k": 0.3
+    "math_qa": 0.3
+    "metamath": 0.4
+  max_seq_length: 2048
+  preprocessing_num_workers: 4
+
+tpu:
+  use_tpu: true
+  num_tpu_cores: 8
+  batch_size_per_core: 8
+  gradient_accumulation_steps: 4
+  mixed_precision: "bfloat16"
+  gradient_checkpointing: false
