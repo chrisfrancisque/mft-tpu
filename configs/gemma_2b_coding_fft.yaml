@@ -18,8 +18,8 @@ training:
   lr_scheduler_type: "linear"
   weight_decay: 0.0
   logging_steps: 10
-  save_steps: 500
-  eval_steps: 500
+  save_steps: 10000  # Save only at end (2500 steps per epoch, so 10000 > epoch)
+  eval_steps: 10000  # Eval only at end to avoid memory issues
   seed: 42
 
 data:
