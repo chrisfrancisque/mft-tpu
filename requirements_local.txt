@@ -1,0 +1,15 @@
+# requirements_local.txt
+# For local development (no TPU)
+torch>=2.1.0
+transformers>=4.35.0
+datasets>=2.14.0
+accelerate>=0.24.0
+pyyaml>=6.0
+numpy>=1.24.0
+tqdm>=4.65.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# Optional for monitoring (comment out if not needed)
+# wandb>=0.15.0
+# tensorboard>=2.14.0
