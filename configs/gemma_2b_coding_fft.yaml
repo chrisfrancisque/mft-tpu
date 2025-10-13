@@ -35,8 +35,8 @@ data:
 
 tpu:
   use_tpu: true
-  batch_size_per_core: 4  # 4 * 8 cores = 32 effective batch size
+  batch_size_per_core: 2  # Reduced from 4 to 2 since no gradient checkpointing (2 * 8 cores = 16 effective batch size)
   num_tpu_cores: 8
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 2  # Increased to maintain effective batch size of 32
   mixed_precision: "bf16"
-  gradient_checkpointing: true  # Moved here - it's a TPU memory optimization
+  gradient_checkpointing: false  # Disabled - not compatible with TPU in PyTorch 2.5
