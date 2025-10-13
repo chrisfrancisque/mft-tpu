@@ -6,7 +6,7 @@ base_model_path: null
 
 model:
   model_name: "google/gemma-2-2b"
-  max_seq_length: 2048
+  max_seq_length: 512  # Reduced from 2048 to save memory (16x reduction in attention, 4x in output logits)
   cache_dir: "./model_cache"
 
 training:
@@ -35,8 +35,8 @@ data:
 
 tpu:
   use_tpu: true
-  batch_size_per_core: 2  # Reduced from 4 to 2 since no gradient checkpointing (2 * 8 cores = 16 effective batch size)
+  batch_size_per_core: 1  # Reduced to 1 to avoid OOM (1 * 8 cores = 8 effective batch size)
   num_tpu_cores: 8
-  gradient_accumulation_steps: 2  # Increased to maintain effective batch size of 32
+  gradient_accumulation_steps: 4  # Increased to 4 to maintain effective batch size of 32
   mixed_precision: "bf16"
   gradient_checkpointing: false  # Disabled - not compatible with TPU in PyTorch 2.5
