@@ -17,11 +17,11 @@ export PJRT_DEVICE=TPU
 
 # Parse arguments (optional)
 CONFIG_FILE="${1:-configs/gemma_2b_coding_fft.yaml}"
-OUTPUT_BUCKET="${2:-gs://YOUR_BUCKET/outputs/gemma_2b_coding_fft}"
+LOCAL_OUTPUT="./outputs/gemma_2b_coding_fft"
 
 echo "Configuration:"
 echo "  Config file: $CONFIG_FILE"
-echo "  Output bucket: $OUTPUT_BUCKET"
+echo "  Local output: $LOCAL_OUTPUT"
 echo ""
 
 # Check if config exists
@@ -34,7 +34,7 @@ fi
 echo "Starting training..."
 python3 scripts/train_fft.py \
     --config "$CONFIG_FILE" \
-    --output_dir "$OUTPUT_BUCKET" \
+    --output_dir "$LOCAL_OUTPUT" \
     2>&1 | tee fft_training.log
 
 # Check if training succeeded
@@ -43,16 +43,17 @@ if [ $? -eq 0 ]; then
     echo "=========================================="
     echo "FFT Training Complete!"
     echo "Timestamp: $(date)"
-    echo "Output saved to: $OUTPUT_BUCKET"
+    echo "Output saved to: $LOCAL_OUTPUT"
     echo "=========================================="
 
-    # Copy logs to GCS
-    gsutil cp fft_training.log "$OUTPUT_BUCKET/training.log"
-
-    # List checkpoints
+    # List saved files
     echo ""
-    echo "Saved checkpoints:"
-    gsutil ls "$OUTPUT_BUCKET/checkpoint-*"
+    echo "Saved checkpoint:"
+    ls -lh "$LOCAL_OUTPUT/final_fft_model/"
+
+    echo ""
+    echo "Disk usage:"
+    df -h /
 else
     echo ""
     echo "ERROR: Training failed!"

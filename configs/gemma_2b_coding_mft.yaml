@@ -2,11 +2,11 @@
 # Mask Fine-Tuning configuration for Gemma-2 2B on coding domain
 experiment_type: mft
 domain: coding
-base_model_path: "gs://YOUR_BUCKET/outputs/gemma_2b_coding_fft/checkpoint-best"
+base_model_path: "./outputs/gemma_2b_coding_fft/final_fft_model"  # Local path - no GCS needed
 
 model:
   model_name: "google/gemma-2-2b"
-  max_seq_length: 2048
+  max_seq_length: 512  # Match FFT config
   cache_dir: "./model_cache"
 
 mask:
