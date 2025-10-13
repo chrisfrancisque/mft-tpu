@@ -1,0 +1,43 @@
+# configs/gemma_2b_coding_fft.yaml
+# Full Fine-Tuning configuration for Gemma-2 2B on coding domain
+experiment_type: fft
+domain: coding
+base_model_path: null
+
+model:
+  model_name: "google/gemma-2-2b"
+  max_seq_length: 2048
+  cache_dir: "./model_cache"
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "gemma_2b_coding_fft"
+  num_train_epochs: 1
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.03
+  lr_scheduler_type: "linear"
+  weight_decay: 0.0
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 500
+  seed: 42
+
+data:
+  dataset_mixer:
+    "bigcode/evol-codealpaca-v1": 20000
+    "sahil2801/CodeAlpaca-20k": 10000
+    "nickrosh/Evol-Instruct-Code-80k-v1": 10000
+  max_train_samples: 40000
+  max_eval_samples: 500
+  preprocessing_num_workers: 4
+  cache_dir: "./data_cache"
+  dataloader_num_workers: 0  # 0 for TPU compatibility
+  dataloader_pin_memory: false
+
+tpu:
+  use_tpu: true
+  batch_size_per_core: 4  # 4 * 8 cores = 32 effective batch size
+  num_tpu_cores: 8
+  gradient_accumulation_steps: 1
+  mixed_precision: "bf16"
+  gradient_checkpointing: true  # Moved here - it's a TPU memory optimization

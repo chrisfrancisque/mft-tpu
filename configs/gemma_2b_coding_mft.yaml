@@ -1,0 +1,51 @@
+# configs/gemma_2b_coding_mft.yaml
+# Mask Fine-Tuning configuration for Gemma-2 2B on coding domain
+experiment_type: mft
+domain: coding
+base_model_path: "gs://YOUR_BUCKET/outputs/gemma_2b_coding_fft/checkpoint-best"
+
+model:
+  model_name: "google/gemma-2-2b"
+  max_seq_length: 2048
+  cache_dir: "./model_cache"
+
+mask:
+  mask_type: "local"
+  sparsity_attn: 0.9  # Keep 90% of attention weights
+  sparsity_mlp: 0.9   # Keep 90% of MLP weights
+  masked_layers: [16, 17, 18, 19]  # Adjusted for Gemma's 26-layer architecture
+  apply_to_attention: true
+  apply_to_mlp: true
+  subnet_mode: "both"
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "gemma_2b_coding_mft"
+  num_train_epochs: 2
+  learning_rate: 2.0e-5  # Same as FFT (paper uses same LR)
+  warmup_ratio: 0.03
+  lr_scheduler_type: "linear"
+  weight_decay: 0.0
+  logging_steps: 10
+  save_steps: 500
+  seed: 42
+
+data:
+  dataset_mixer:
+    "bigcode/evol-codealpaca-v1": 20000
+    "sahil2801/CodeAlpaca-20k": 10000
+    "nickrosh/Evol-Instruct-Code-80k-v1": 10000
+  max_train_samples: 40000
+  max_eval_samples: 500
+  preprocessing_num_workers: 4
+  cache_dir: "./data_cache"
+  dataloader_num_workers: 0
+  dataloader_pin_memory: false
+
+tpu:
+  use_tpu: true
+  batch_size_per_core: 4
+  num_tpu_cores: 8
+  gradient_accumulation_steps: 1
+  mixed_precision: "bf16"
+  gradient_checkpointing: true

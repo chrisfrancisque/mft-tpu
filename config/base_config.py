@@ -55,7 +55,12 @@ class ModelConfig:
 class MaskConfig:
     """Mask Fine-tuning configuration"""
     mask_type: str = 'local' #either can be local or global
-    sparsity_ratio: float = 0.1 # 10% sparsity per paper
+    sparsity_ratio: float = 0.1 # 10% sparsity per paper (for backwards compatibility)
+
+    # Separate sparsity for attention and MLP (paper's approach)
+    sparsity_attn: float = 0.9  # Keep 90% of attention weights
+    sparsity_mlp: float = 0.9   # Keep 90% of MLP weights
+    subnet_mode: str = "both"   # "attn", "mlp", or "both"
 
     # Layer specific masking
     masked_layers: List[int] = field(default_factory= lambda: [4,5,6,7])
