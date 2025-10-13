@@ -2,7 +2,7 @@
 # Mask Fine-Tuning configuration for Gemma-2 2B on coding domain
 experiment_type: mft
 domain: coding
-base_model_path: "./outputs/gemma_2b_coding_fft/final_fft_model"  # Local path - no GCS needed
+base_model_path: "./outputs/gemma_2b_coding_fft/fft/coding/gemma_2b_coding_fft/final_fft_model"  # Actual FFT checkpoint path
 
 model:
   model_name: "google/gemma-2-2b"
@@ -27,15 +27,15 @@ training:
   lr_scheduler_type: "linear"
   weight_decay: 0.0
   logging_steps: 10
-  save_steps: 500
+  save_steps: 10000  # Save only at end (5000 steps for 2 epochs, so 10000 > epochs)
+  eval_steps: 10000  # Eval only at end
   seed: 42
 
 data:
   dataset_mixer:
-    "bigcode/evol-codealpaca-v1": 20000
-    "sahil2801/CodeAlpaca-20k": 10000
-    "nickrosh/Evol-Instruct-Code-80k-v1": 10000
-  max_train_samples: 40000
+    "code_alpaca": 10000
+    "evol_code": 10000
+  max_train_samples: 20000
   max_eval_samples: 500
   preprocessing_num_workers: 4
   cache_dir: "./data_cache"
@@ -44,8 +44,8 @@ data:
 
 tpu:
   use_tpu: true
-  batch_size_per_core: 4
+  batch_size_per_core: 1  # Match FFT to avoid OOM
   num_tpu_cores: 8
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 4  # Match FFT
   mixed_precision: "bf16"
-  gradient_checkpointing: true
+  gradient_checkpointing: false  # Disabled for TPU compatibility
