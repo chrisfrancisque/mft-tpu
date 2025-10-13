@@ -150,7 +150,12 @@ class ModelFactory:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
             logger.info("Set pad_token to eos_token")
-        
+
+        # Add chat template if not present (for Gemma-2 and similar models)
+        if tokenizer.chat_template is None:
+            tokenizer.chat_template = "{% for message in messages %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + message['content'] + '<end_of_turn>\n' }}{% elif message['role'] == 'assistant' %}{{ '<start_of_turn>model\n' + message['content'] + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
+            logger.info("Set default Gemma chat template")
+
         # Load model config
         model_config = AutoConfig.from_pretrained(
             config.model.model_name,
