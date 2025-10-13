@@ -92,9 +92,20 @@ class MFTModelWrapper(nn.Module):
     def save_pretrained(self, save_path: str):
         """Save the model with proper handling of masked layers."""
         os.makedirs(save_path, exist_ok=True)
-        
+
+        # Move model to CPU before saving (required for XLA/TPU tensors)
+        original_device = next(self.base_model.parameters()).device
+        if str(original_device).startswith('xla'):
+            import torch_xla.core.xla_model as xm
+            xm.mark_step()  # Ensure all operations are complete
+            self.base_model = self.base_model.cpu()
+
         # Save the base model
         self.base_model.save_pretrained(save_path)
+
+        # Move model back to original device
+        if str(original_device).startswith('xla'):
+            self.base_model = self.base_model.to(original_device)
         
         # Save mask scores separately if in MFT mode
         if self.mft_enabled:
