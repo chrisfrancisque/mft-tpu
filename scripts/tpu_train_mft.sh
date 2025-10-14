@@ -17,13 +17,11 @@ export PJRT_DEVICE=TPU
 
 # Parse arguments
 CONFIG_FILE="${1:-configs/gemma_2b_coding_mft.yaml}"
-BASE_MODEL_PATH="${2:-gs://YOUR_BUCKET/outputs/gemma_2b_coding_fft/checkpoint-best}"
-OUTPUT_BUCKET="${3:-gs://YOUR_BUCKET/outputs/gemma_2b_coding_mft}"
+LOCAL_OUTPUT="./outputs/gemma_2b_coding_mft"
 
 echo "Configuration:"
 echo "  Config file: $CONFIG_FILE"
-echo "  Base model (FFT): $BASE_MODEL_PATH"
-echo "  Output bucket: $OUTPUT_BUCKET"
+echo "  Local output: $LOCAL_OUTPUT"
 echo ""
 
 # Check if config exists
@@ -32,10 +30,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
-# Check if base model exists
+# Check if base model exists (path is in config file)
+BASE_MODEL_PATH="./outputs/gemma_2b_coding_fft/fft/coding/gemma_2b_coding_fft/final_fft_model"
 echo "Checking base model..."
-if gsutil ls "$BASE_MODEL_PATH/config.json" >/dev/null 2>&1; then
-    echo "✓ Base model found"
+if [ -f "$BASE_MODEL_PATH/config.json" ]; then
+    echo "✓ Base model found at: $BASE_MODEL_PATH"
 else
     echo "ERROR: Base model not found at: $BASE_MODEL_PATH"
     echo "Make sure FFT training completed successfully first!"
@@ -47,8 +46,7 @@ echo ""
 echo "Starting MFT training..."
 python3 scripts/train_mft.py \
     --config "$CONFIG_FILE" \
-    --base_model_path "$BASE_MODEL_PATH" \
-    --output_dir "$OUTPUT_BUCKET" \
+    --output_dir "$LOCAL_OUTPUT" \
     --apply_masks_after_training \
     2>&1 | tee mft_training.log
 
@@ -58,23 +56,20 @@ if [ $? -eq 0 ]; then
     echo "=========================================="
     echo "MFT Training Complete!"
     echo "Timestamp: $(date)"
+    echo "Output saved to: $LOCAL_OUTPUT"
     echo "=========================================="
-
-    # Copy logs to GCS
-    gsutil cp mft_training.log "$OUTPUT_BUCKET/training.log"
 
     # List outputs
     echo ""
-    echo "Outputs:"
-    echo "  Checkpoints:"
-    gsutil ls "$OUTPUT_BUCKET/checkpoint-*" || echo "  (none)"
-    echo "  Masks:"
-    gsutil ls "$OUTPUT_BUCKET/masks.pt" || echo "  (not found)"
-    echo "  Masked model:"
-    gsutil ls "$OUTPUT_BUCKET/mask_applied/" || echo "  (not found)"
+    echo "Saved files:"
+    ls -lh "$LOCAL_OUTPUT/" 2>/dev/null || echo "  (directory not found)"
 
     echo ""
-    echo "Next step: Run evaluation with scripts/tpu_evaluate.sh"
+    echo "Disk usage:"
+    df -h /
+
+    echo ""
+    echo "Next step: Evaluate FFT and MFT models for comparison"
 else
     echo ""
     echo "ERROR: Training failed!"
