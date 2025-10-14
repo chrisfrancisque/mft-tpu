@@ -46,6 +46,7 @@ echo ""
 echo "Starting MFT training..."
 python3 scripts/train_mft.py \
     --config "$CONFIG_FILE" \
+    --base_model_path "$BASE_MODEL_PATH" \
     --output_dir "$LOCAL_OUTPUT" \
     --apply_masks_after_training \
     2>&1 | tee mft_training.log
