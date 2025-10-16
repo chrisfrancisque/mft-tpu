@@ -162,10 +162,16 @@ class ModelFactory:
             tokenizer.pad_token = tokenizer.eos_token
             logger.info("Set pad_token to eos_token")
 
-        # Add chat template if not present (for Gemma-2 and similar models)
+        # Add chat template if not present
         if tokenizer.chat_template is None:
-            tokenizer.chat_template = "{% for message in messages %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + message['content'] + '<end_of_turn>\n' }}{% elif message['role'] == 'assistant' %}{{ '<start_of_turn>model\n' + message['content'] + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
-            logger.info("Set default Gemma chat template")
+            # LLaMA2 uses [INST] format
+            if "llama" in config.model.model_name.lower():
+                tokenizer.chat_template = "{% for message in messages %}{% if message['role'] == 'user' %}{{ '[INST] ' + message['content'] + ' [/INST]' }}{% elif message['role'] == 'assistant' %}{{ message['content'] + eos_token }}{% endif %}{% endfor %}"
+                logger.info("Set default LLaMA2 chat template")
+            else:
+                # Gemma and similar models
+                tokenizer.chat_template = "{% for message in messages %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\n' + message['content'] + '<end_of_turn>\n' }}{% elif message['role'] == 'assistant' %}{{ '<start_of_turn>model\n' + message['content'] + '<end_of_turn>\n' }}{% endif %}{% endfor %}"
+                logger.info("Set default Gemma chat template")
 
         # Load model config
         model_config = AutoConfig.from_pretrained(
@@ -180,13 +186,20 @@ class ModelFactory:
         model_config.gradient_checkpointing = config.tpu.gradient_checkpointing
         
         # Load model
+        # Handle different precision formats
+        dtype = torch.float32
+        if config.tpu.mixed_precision in ["bfloat16", "bf16"]:
+            dtype = torch.bfloat16
+        elif config.tpu.mixed_precision == "float16":
+            dtype = torch.float16
+
         model = AutoModelForCausalLM.from_pretrained(
             config.model.model_name,
             config=model_config,
             revision=config.model.model_revision,
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
-            torch_dtype=torch.bfloat16 if config.tpu.mixed_precision == "bfloat16" else torch.float32
+            torch_dtype=dtype
         )
         
         # Resize token embeddings if needed

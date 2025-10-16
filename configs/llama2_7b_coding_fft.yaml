@@ -1,0 +1,59 @@
+# configs/llama2_7b_coding_fft.yaml
+# Full Fine-Tuning configuration for LLaMA2-7B on coding domain
+# Matches paper's setup: 8 accelerators, batch size 128, 30k samples, 2 epochs
+
+experiment_type: fft
+domain: coding
+base_model_path: null
+
+model:
+  model_name: "meta-llama/Llama-2-7b-hf"
+  max_seq_length: 4096  # Paper's setting - will truncate longer samples
+  cache_dir: "./model_cache"
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "llama2_7b_coding_fft_paper_replication"
+  num_train_epochs: 2  # Paper uses 2 epochs
+  learning_rate: 2.0e-5  # Paper's LR for LLaMA2-7B
+  warmup_ratio: 0.03
+  lr_scheduler_type: "linear"
+  weight_decay: 0.0
+  logging_steps: 10  # Log metrics for monitoring
+  save_steps: 10000  # Save only at end (>468 total steps)
+  eval_steps: 234  # Evaluate at end of each epoch
+  seed: 42
+
+data:
+  # Paper uses 10k from each of these 3 datasets = 30k total
+  dataset_mixer:
+    "tulu3_persona_python": 10000  # Tulu 3 Persona Python
+    "evol_code": 10000              # Evol CodeAlpaca
+    "code_alpaca": 10000            # Code-Alpaca
+  max_train_samples: 30000  # Exactly 30k like paper
+  max_eval_samples: 164  # HumanEval has 164 problems
+  preprocessing_num_workers: 8
+  cache_dir: "./data_cache"
+  dataloader_num_workers: 0  # 0 for TPU compatibility
+  dataloader_pin_memory: false
+
+tpu:
+  use_tpu: true
+  num_tpu_cores: 8  # TPU v4-8
+
+  # Paper uses effective batch size of 128
+  # 8 cores × 2 per_core × 8 accumulation = 128
+  batch_size_per_core: 2
+  gradient_accumulation_steps: 8
+
+  # TPU optimization
+  mixed_precision: "bf16"  # bfloat16 for TPU
+  gradient_checkpointing: true  # Enable to save memory with 4096 seq length
+
+  # XLA settings
+  xla_use_bf16: true
+
+# Expected training:
+# Steps per epoch: 30000 / 128 = 234 steps
+# Total steps: 234 × 2 = 468 steps (~470 like paper)
+# Time estimate: ~1.5-2 hours on TPU v4-8

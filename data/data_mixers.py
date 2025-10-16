@@ -15,41 +15,56 @@ logger = logging.getLogger(__name__)
 
 
 class MixedDataset(Dataset):
-    """Dataset that mixes multiple datasets with specified proportions."""
-    
+    """Dataset that mixes multiple datasets with specified proportions or absolute counts."""
+
     def __init__(
         self,
         datasets: Dict[str, Dataset],
-        mixing_weights: Dict[str, float],
+        mixing_weights: Dict[str, Union[float, int]],
         total_samples: Optional[int] = None,
         seed: int = 42
     ):
         self.datasets = datasets
         self.mixing_weights = mixing_weights
         self.seed = seed
-        
-        # Normalize mixing weights
-        total_weight = sum(mixing_weights.values())
-        self.normalized_weights = {
-            name: weight / total_weight 
-            for name, weight in mixing_weights.items()
-        }
-        
+
+        # Detect if using absolute counts (integers > 1) or proportions (floats < 1)
+        values = list(mixing_weights.values())
+        using_absolute_counts = all(isinstance(v, int) and v > 1 for v in values)
+
         # Calculate samples per dataset
-        if total_samples is None:
-            # Use all available data
-            self.samples_per_dataset = {
-                name: len(dataset) 
-                for name, dataset in datasets.items()
-            }
-        else:
-            # Sample according to weights
+        if using_absolute_counts:
+            # Use absolute counts directly (paper's approach)
             self.samples_per_dataset = {}
-            for name, weight in self.normalized_weights.items():
-                n_samples = int(total_samples * weight)
+            for name, count in mixing_weights.items():
                 # Don't exceed available data
-                n_samples = min(n_samples, len(datasets[name]))
+                n_samples = min(count, len(datasets[name]))
                 self.samples_per_dataset[name] = n_samples
+                if n_samples < count:
+                    logger.warning(f"Dataset {name} has only {n_samples} samples, requested {count}")
+        else:
+            # Use weights/proportions (original behavior)
+            # Normalize mixing weights
+            total_weight = sum(mixing_weights.values())
+            self.normalized_weights = {
+                name: weight / total_weight
+                for name, weight in mixing_weights.items()
+            }
+
+            if total_samples is None:
+                # Use all available data
+                self.samples_per_dataset = {
+                    name: len(dataset)
+                    for name, dataset in datasets.items()
+                }
+            else:
+                # Sample according to weights
+                self.samples_per_dataset = {}
+                for name, weight in self.normalized_weights.items():
+                    n_samples = int(total_samples * weight)
+                    # Don't exceed available data
+                    n_samples = min(n_samples, len(datasets[name]))
+                    self.samples_per_dataset[name] = n_samples
         
         # Create index mapping
         self._create_index_mapping()

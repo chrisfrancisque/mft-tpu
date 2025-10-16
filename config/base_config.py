@@ -122,7 +122,7 @@ class DataConfig:
     # Dataset settings
     dataset_name: Optional[str] = None
     dataset_config: Optional[str] = None
-    dataset_mixer: Optional[Dict[str, float]] = None
+    dataset_mixer: Optional[Dict[str, Any]] = None  # Supports both floats (proportions) and ints (absolute counts)
 
     # Data paths
     train_file: Optional[str] = None

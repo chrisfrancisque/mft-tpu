@@ -112,6 +112,12 @@ class DomainDatasetLoader:
                 'path': 'nickrosh/Evol-Instruct-Code-80k-v1',
                 'split': 'train',
                 'format_fn': 'format_evol_code'
+            },
+            # Paper's dataset for replication
+            'tulu3_persona_python': {
+                'path': 'allenai/tulu-3-sft-personas-code',
+                'split': 'train',
+                'format_fn': 'format_tulu3_persona_python'
             }
         },
         'instruction': {
@@ -249,13 +255,30 @@ class DomainDatasetLoader:
         """Format Evol Code dataset."""
         instruction = example.get('instruction', '')
         output = example.get('output', '')
-        
+
         messages = [
             {"role": "user", "content": instruction},
             {"role": "assistant", "content": output}
         ]
         return {"messages": messages}
-    
+
+    @staticmethod
+    def format_tulu3_persona_python(example):
+        """Format Tulu 3 Persona Python dataset."""
+        # Tulu 3 already has messages format
+        if 'messages' in example:
+            return {"messages": example['messages']}
+        else:
+            # Fallback if format is different
+            instruction = example.get('instruction', example.get('prompt', ''))
+            output = example.get('output', example.get('response', ''))
+
+            messages = [
+                {"role": "user", "content": instruction},
+                {"role": "assistant", "content": output}
+            ]
+            return {"messages": messages}
+
     @staticmethod
     def format_alpaca(example):
         """Format Alpaca dataset."""
