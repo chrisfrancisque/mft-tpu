@@ -1,0 +1,74 @@
+# configs/llama2_7b_coding_mft_v3.yaml
+# Mask Fine-Tuning configuration for LLaMA2-7B on coding domain
+# Optimized for TPU v3-8 (16GB per chip memory constraint)
+
+experiment_type: mft
+domain: coding
+base_model_path: "./outputs/fft/coding/llama2_7b_coding_fft_v3/final_fft_model"
+
+model:
+  model_name: "meta-llama/Llama-2-7b-hf"
+  max_seq_length: 2048  # Match FFT config
+  cache_dir: "./model_cache"
+
+mask:
+  mask_type: "local"  # Local masking on specific layers
+
+  # Paper's approach: sparsity 0.9 = keep 90%, mask 10%
+  # Our notation: sparsity_ratio 0.1 = mask 10%
+  sparsity_ratio: 0.1  # For backwards compatibility
+  sparsity_attn: 0.9   # Keep 90% of attention weights
+  sparsity_mlp: 0.9    # Keep 90% of MLP weights
+  subnet_mode: "both"  # Mask both attention and MLP
+
+  # Paper's ablation (Fig 3) shows layers 20-23 work best for coding
+  # LLaMA2-7B has 32 layers (0-31)
+  masked_layers: [20, 21, 22, 23]
+
+  apply_to_attention: true
+  apply_to_mlp: true
+
+  mask_learning_rate: 0.001  # Paper doesn't specify, using reasonable default
+
+training:
+  output_dir: "./outputs"
+  experiment_name: "llama2_7b_coding_mft_v3"
+  num_train_epochs: 2  # Paper uses 2 epochs for MFT
+  learning_rate: 2.0e-5  # Same as FFT
+  warmup_ratio: 0.03
+  lr_scheduler_type: "linear"
+  weight_decay: 0.0
+  logging_steps: 10
+  save_steps: 10000  # Save only final masked model
+  eval_steps: 234  # Evaluate at end of each epoch
+  seed: 42
+
+data:
+  # Same 30k samples as FFT
+  dataset_mixer:
+    "tulu3_persona_python": 10000
+    "evol_code": 10000
+    "code_alpaca": 10000
+  max_train_samples: 30000
+  max_eval_samples: 164  # HumanEval
+  preprocessing_num_workers: 8
+  cache_dir: "./data_cache"
+  dataloader_num_workers: 0
+  dataloader_pin_memory: false
+
+tpu:
+  use_tpu: true
+  num_tpu_cores: 8
+
+  # Same batch settings as FFT
+  batch_size_per_core: 2
+  gradient_accumulation_steps: 8  # Effective batch size = 128
+
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+  xla_use_bf16: true
+
+# Expected training:
+# Steps: 234 × 2 = 468 steps (same as FFT)
+# Time estimate: ~2-2.5 hours on TPU v3-8
+# MFT trains only mask scores, not model weights (faster per step than FFT)
