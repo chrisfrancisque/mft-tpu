@@ -8,7 +8,7 @@ base_model_path: null
 
 model:
   model_name: "meta-llama/Llama-2-7b-hf"
-  max_seq_length: 4096  # Paper's setting - will truncate longer samples
+  max_seq_length: 2048  # Reduced from 4096 to fit in TPU v4-8 memory (31.75GB)
   cache_dir: "./model_cache"
 
 training:
