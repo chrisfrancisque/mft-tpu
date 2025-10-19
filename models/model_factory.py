@@ -11,6 +11,7 @@ from transformers import (
     AutoConfig,
     PreTrainedModel
 )
+from huggingface_hub import HfFolder
 from typing import Optional, Dict, Any, Tuple
 import logging
 import os
@@ -145,9 +146,12 @@ class ModelFactory:
     @staticmethod
     def load_base_model(config) -> Tuple[PreTrainedModel, AutoTokenizer]:
         """Load a pre-trained model for FFT or as base for MFT."""
-        
+
         logger.info(f"Loading base model: {config.model.model_name}")
-        
+
+        # Get HuggingFace token for gated models
+        hf_token = HfFolder.get_token()
+
         # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
             config.data.tokenizer_name or config.model.model_name,
@@ -155,7 +159,7 @@ class ModelFactory:
             use_fast=config.data.use_fast_tokenizer,
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
-            token=True  # Use saved HF token for gated models like LLaMA
+            token=hf_token  # Use saved HF token for gated models like LLaMA
         )
         
         # Add padding token if not present
@@ -180,7 +184,7 @@ class ModelFactory:
             revision=config.model.model_revision,
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
-            token=True  # Use saved HF token for gated models like LLaMA
+            token=hf_token  # Use saved HF token for gated models like LLaMA
         )
         
         # Update model config with training settings
@@ -202,7 +206,7 @@ class ModelFactory:
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
             torch_dtype=dtype,
-            token=True  # Use saved HF token for gated models like LLaMA
+            token=hf_token  # Use saved HF token for gated models like LLaMA
         )
         
         # Resize token embeddings if needed
