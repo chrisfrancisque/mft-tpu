@@ -17,7 +17,12 @@ export PJRT_DEVICE=TPU
 
 # Parse arguments (optional)
 CONFIG_FILE="${1:-configs/gemma_2b_coding_fft.yaml}"
-LOCAL_OUTPUT="./outputs/gemma_2b_coding_fft"
+# Extract experiment name from config if possible, otherwise use default
+if [[ "$CONFIG_FILE" == *"llama2_7b_coding_fft"* ]]; then
+    LOCAL_OUTPUT="./outputs/llama2_7b_coding_fft"
+else
+    LOCAL_OUTPUT="./outputs/gemma_2b_coding_fft"
+fi
 
 echo "Configuration:"
 echo "  Config file: $CONFIG_FILE"

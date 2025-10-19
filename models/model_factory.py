@@ -154,7 +154,8 @@ class ModelFactory:
             revision=config.model.model_revision,
             use_fast=config.data.use_fast_tokenizer,
             trust_remote_code=config.model.trust_remote_code,
-            cache_dir=config.model.cache_dir
+            cache_dir=config.model.cache_dir,
+            token=True  # Use saved HF token for gated models like LLaMA
         )
         
         # Add padding token if not present
@@ -178,7 +179,8 @@ class ModelFactory:
             config.model.model_name,
             revision=config.model.model_revision,
             trust_remote_code=config.model.trust_remote_code,
-            cache_dir=config.model.cache_dir
+            cache_dir=config.model.cache_dir,
+            token=True  # Use saved HF token for gated models like LLaMA
         )
         
         # Update model config with training settings
@@ -199,7 +201,8 @@ class ModelFactory:
             revision=config.model.model_revision,
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
-            torch_dtype=dtype
+            torch_dtype=dtype,
+            token=True  # Use saved HF token for gated models like LLaMA
         )
         
         # Resize token embeddings if needed

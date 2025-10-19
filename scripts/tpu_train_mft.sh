@@ -17,7 +17,12 @@ export PJRT_DEVICE=TPU
 
 # Parse arguments
 CONFIG_FILE="${1:-configs/gemma_2b_coding_mft.yaml}"
-LOCAL_OUTPUT="./outputs/gemma_2b_coding_mft"
+# Extract experiment name from config if possible, otherwise use default
+if [[ "$CONFIG_FILE" == *"llama2_7b_coding_mft"* ]]; then
+    LOCAL_OUTPUT="./outputs/llama2_7b_coding_mft"
+else
+    LOCAL_OUTPUT="./outputs/gemma_2b_coding_mft"
+fi
 
 echo "Configuration:"
 echo "  Config file: $CONFIG_FILE"
@@ -31,14 +36,19 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Check if base model exists (path is in config file)
-BASE_MODEL_PATH="./outputs/gemma_2b_coding_fft/fft/coding/gemma_2b_coding_fft/final_fft_model"
+# Determine base model path based on config
+if [[ "$CONFIG_FILE" == *"llama2_7b_coding_mft"* ]]; then
+    BASE_MODEL_PATH="./outputs/llama2_7b_coding_fft/fft/coding/llama2_7b_coding_fft_paper_replication/final_fft_model"
+else
+    BASE_MODEL_PATH="./outputs/gemma_2b_coding_fft/fft/coding/gemma_2b_coding_fft/final_fft_model"
+fi
+
 echo "Checking base model..."
 if [ -f "$BASE_MODEL_PATH/config.json" ]; then
     echo "✓ Base model found at: $BASE_MODEL_PATH"
 else
-    echo "ERROR: Base model not found at: $BASE_MODEL_PATH"
-    echo "Make sure FFT training completed successfully first!"
-    exit 1
+    echo "WARNING: Base model not found at: $BASE_MODEL_PATH"
+    echo "Will use path specified in config file instead"
 fi
 
 # Start training
