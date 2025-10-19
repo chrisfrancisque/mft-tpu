@@ -65,7 +65,7 @@ tpu:
   gradient_accumulation_steps: 8  # Effective batch size = 128
 
   mixed_precision: "bf16"
-  gradient_checkpointing: true
+  gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
   xla_use_bf16: true
 
 # Expected training:

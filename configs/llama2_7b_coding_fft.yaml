@@ -48,7 +48,7 @@ tpu:
 
   # TPU optimization
   mixed_precision: "bf16"  # bfloat16 for TPU
-  gradient_checkpointing: true  # Enable to save memory with 4096 seq length
+  gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
 
   # XLA settings
   xla_use_bf16: true
