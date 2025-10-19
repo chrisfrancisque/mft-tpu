@@ -61,15 +61,15 @@ tpu:
   num_tpu_cores: 8
 
   # Same batch settings as FFT
-  # 8 cores × 1 per_core × 16 accumulation = 128
+  # 8 cores × 1 per_core × 1 accumulation = 8 effective batch size
   batch_size_per_core: 1
-  gradient_accumulation_steps: 16  # Effective batch size = 128
+  gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
   mixed_precision: "bf16"
   gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
   xla_use_bf16: true
 
 # Expected training:
-# Steps: 234 × 2 = 468 steps (same as FFT)
-# Time estimate: ~1.5-2 hours on TPU v4-8
+# Steps: 3750 × 2 = 7500 steps (same as FFT with batch=8)
+# Time estimate: ~3-4 hours on TPU v4-8
 # MFT trains only mask scores, not model weights (much faster per step)

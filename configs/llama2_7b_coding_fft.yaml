@@ -41,11 +41,11 @@ tpu:
   use_tpu: true
   num_tpu_cores: 8  # TPU v4-8
 
-  # Paper uses effective batch size of 128
-  # 8 cores × 1 per_core × 16 accumulation = 128
-  # Reduced batch_size_per_core to avoid OOM on TPU v4-8
+  # TPU v4-8 memory constraints force smaller batch size
+  # 8 cores × 1 per_core × 1 accumulation = 8 effective batch size
+  # This is smaller than paper's 128, but necessary to fit in memory
   batch_size_per_core: 1
-  gradient_accumulation_steps: 16
+  gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
   # TPU optimization
   mixed_precision: "bf16"  # bfloat16 for TPU
@@ -55,6 +55,6 @@ tpu:
   xla_use_bf16: true
 
 # Expected training:
-# Steps per epoch: 30000 / 128 = 234 steps
-# Total steps: 234 × 2 = 468 steps (~470 like paper)
-# Time estimate: ~1.5-2 hours on TPU v4-8
+# Steps per epoch: 30000 / 8 = 3750 steps (vs paper's 234 with batch=128)
+# Total steps: 3750 × 2 = 7500 steps
+# Time estimate: ~3-4 hours on TPU v4-8 (longer due to smaller batch size)
