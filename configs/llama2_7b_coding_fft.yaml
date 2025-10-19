@@ -8,7 +8,7 @@ base_model_path: null
 
 model:
   model_name: "meta-llama/Llama-2-7b-hf"
-  max_seq_length: 2048  # Reduced from 4096 to fit in TPU v4-8 memory (31.75GB)
+  max_seq_length: 1024  # Reduced from 2048 - TPU v4-8 cannot compile even at 2048
   cache_dir: "./model_cache"
 
 training:

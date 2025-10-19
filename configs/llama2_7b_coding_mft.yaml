@@ -8,7 +8,7 @@ base_model_path: "./outputs/fft/coding/llama2_7b_coding_fft_paper_replication/fi
 
 model:
   model_name: "meta-llama/Llama-2-7b-hf"
-  max_seq_length: 2048  # Same as FFT - reduced to fit in TPU v4-8 memory
+  max_seq_length: 1024  # Same as FFT - TPU v4-8 cannot compile even at 2048
   cache_dir: "./model_cache"
 
 mask:
