@@ -42,9 +42,10 @@ tpu:
   num_tpu_cores: 8  # TPU v4-8
 
   # Paper uses effective batch size of 128
-  # 8 cores × 2 per_core × 8 accumulation = 128
-  batch_size_per_core: 2
-  gradient_accumulation_steps: 8
+  # 8 cores × 1 per_core × 16 accumulation = 128
+  # Reduced batch_size_per_core to avoid OOM on TPU v4-8
+  batch_size_per_core: 1
+  gradient_accumulation_steps: 16
 
   # TPU optimization
   mixed_precision: "bf16"  # bfloat16 for TPU
