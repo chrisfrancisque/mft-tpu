@@ -150,7 +150,22 @@ class ModelFactory:
         logger.info(f"Loading base model: {config.model.model_name}")
 
         # Get HuggingFace token for gated models
+        # Try multiple methods to get the token
         hf_token = HfFolder.get_token()
+        if not hf_token:
+            # Try environment variables
+            hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        if not hf_token:
+            # Try reading directly from file
+            token_path = os.path.expanduser("~/.cache/huggingface/token")
+            if os.path.exists(token_path):
+                with open(token_path, 'r') as f:
+                    hf_token = f.read().strip()
+
+        if hf_token:
+            logger.info("Successfully loaded HuggingFace token")
+        else:
+            logger.warning("No HuggingFace token found - may fail for gated models")
 
         # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
