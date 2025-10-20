@@ -58,10 +58,10 @@ data:
 
 tpu:
   use_tpu: true
-  num_tpu_cores: 1  # Use only 1 core to match FFT setup
+  num_tpu_cores: 8  # Use all 8 cores with data parallelism
 
-  # Same batch settings as FFT
-  # 1 core × 1 per_core × 1 accumulation = 1 effective batch size
+  # Multi-core data parallel training
+  # 8 cores × 1 per_core = 8 effective batch size
   batch_size_per_core: 1
   gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
@@ -69,7 +69,7 @@ tpu:
   gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
   xla_use_bf16: true
 
-# Expected training:
-# Steps: 30000 × 2 = 60000 steps (same as FFT with batch=1)
-# Time estimate: ~12-16 hours on TPU v4-8 single core
-# MFT trains only mask scores, not model weights (much faster per step)
+# Expected training with data parallel across 8 cores:
+# Steps per epoch: 30000 / 8 = 3750 steps per core
+# Total steps: 3750 × 2 = 7500 steps per core
+# Time estimate: ~2-3 hours on TPU v4-8 (MFT trains only mask scores, faster than FFT)

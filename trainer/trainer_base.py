@@ -37,29 +37,36 @@ class BaseTrainer:
         self.model = model
         self.tokenizer = tokenizer
         self.config = config
-        self.train_dataloader = train_dataloader
-        self.eval_dataloader = eval_dataloader
-        
+
         # Get device manager
         self.device_manager = get_device_manager()
         self.device = self.device_manager.device
-        
+
+        # Wrap dataloaders with TPU ParallelLoader if on TPU
+        if self.device_manager.is_tpu:
+            import torch_xla.distributed.parallel_loader as pl
+            self.train_dataloader = pl.MpDeviceLoader(train_dataloader, self.device)
+            self.eval_dataloader = pl.MpDeviceLoader(eval_dataloader, self.device) if eval_dataloader else None
+        else:
+            self.train_dataloader = train_dataloader
+            self.eval_dataloader = eval_dataloader
+
         # Move model to device
         self.model = self.model.to(self.device)
-        
+
         # Setup optimizer and scheduler
         self.optimizer = self._create_optimizer()
         self.scheduler = self._create_scheduler()
-        
+
         # Training state
         self.global_step = 0
         self.current_epoch = 0
         self.best_metric = float('inf')
-        
+
         # Create output directory
         self.output_dir = Path(self.config.get_output_dir())
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Setup logging
         self._setup_logging()
     
@@ -127,27 +134,38 @@ class BaseTrainer:
         input_ids = batch['input_ids'].to(self.device)
         attention_mask = batch['attention_mask'].to(self.device)
         labels = batch['labels'].to(self.device)
-        
+
         # Forward pass
         outputs = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             labels=labels
         )
-        
+
         loss = outputs.loss
-        
+
         # Compute additional metrics
+        # For TPU, move to CPU before .item() to avoid memory leaks
+        if self.device_manager.is_tpu:
+            loss_value = loss.detach().cpu().item()
+            perplexity_value = torch.exp(loss.detach()).cpu().item()
+        else:
+            loss_value = loss.item()
+            perplexity_value = torch.exp(loss).item()
+
         metrics = {
-            'loss': loss.item(),
-            'perplexity': torch.exp(loss).item()
+            'loss': loss_value,
+            'perplexity': perplexity_value
         }
-        
+
         # Add MFT-specific metrics if applicable
         if self.config.experiment_type == "mft":
             sparsity_stats = self._get_sparsity_stats()
             metrics.update(sparsity_stats)
-        
+
+        # Clean up intermediate tensors
+        del input_ids, attention_mask, labels, outputs
+
         return loss, metrics
     
     def _get_sparsity_stats(self) -> Dict[str, float]:
