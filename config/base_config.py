@@ -29,6 +29,7 @@ class TPUConfig:
     # Memory Optimization
     gradient_checkpointing: bool = False
     optimizer_memory_efficient: bool = True
+    use_fsdp: bool = True  # Enable Fully Sharded Data Parallel for large models
 
 
 @dataclass
