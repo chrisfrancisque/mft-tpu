@@ -207,12 +207,18 @@ class ModelFactory:
         model_config.gradient_checkpointing = config.tpu.gradient_checkpointing
         
         # Load model
-        # Handle different precision formats
-        dtype = torch.float32
-        if config.tpu.mixed_precision in ["bfloat16", "bf16"]:
-            dtype = torch.bfloat16
-        elif config.tpu.mixed_precision == "float16":
-            dtype = torch.float16
+        # IMPORTANT: For TPU FSDP, must load in fp32
+        # Mixed precision is handled by XLA during computation, not parameter storage
+        if config.tpu.use_tpu and config.tpu.use_fsdp:
+            dtype = torch.float32  # FSDP requires fp32 parameters
+            logger.info("Loading model in fp32 for FSDP (XLA will handle bf16 computation)")
+        else:
+            # For non-FSDP or non-TPU, can load in reduced precision
+            dtype = torch.float32
+            if config.tpu.mixed_precision in ["bfloat16", "bf16"]:
+                dtype = torch.bfloat16
+            elif config.tpu.mixed_precision == "float16":
+                dtype = torch.float16
 
         model = AutoModelForCausalLM.from_pretrained(
             config.model.model_name,
@@ -303,12 +309,19 @@ class ModelFactory:
             cache_dir=config.model.cache_dir
         )
         
+        # Load in fp32 for TPU FSDP compatibility (same as FFT)
+        if config.tpu.use_tpu and config.tpu.use_fsdp:
+            dtype = torch.float32
+            logger.info("Loading MFT base model in fp32 for FSDP")
+        else:
+            dtype = torch.bfloat16 if config.tpu.mixed_precision == "bfloat16" else torch.float32
+
         model = AutoModelForCausalLM.from_pretrained(
             base_model_path,
             config=model_config,
             trust_remote_code=config.model.trust_remote_code,
             cache_dir=config.model.cache_dir,
-            torch_dtype=torch.bfloat16 if config.tpu.mixed_precision == "bfloat16" else torch.float32
+            torch_dtype=dtype
         )
         
         tokenizer = AutoTokenizer.from_pretrained(
