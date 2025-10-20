@@ -39,16 +39,18 @@ data:
 
 tpu:
   use_tpu: true
-  num_tpu_cores: 8  # Use all 8 cores with data parallelism
+  num_tpu_cores: 8  # Use all 8 cores
+  use_fsdp: true  # Enable Fully Sharded Data Parallel for memory efficiency
 
-  # Multi-core data parallel training
+  # Multi-core FSDP training
   # 8 cores × 1 per_core = 8 effective batch size
+  # FSDP shards model parameters, gradients, and optimizer states across cores
   batch_size_per_core: 1
   gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
   # TPU optimization
   mixed_precision: "bf16"  # bfloat16 for TPU
-  gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
+  gradient_checkpointing: false  # Keep disabled for now
 
   # XLA settings
   xla_use_bf16: true

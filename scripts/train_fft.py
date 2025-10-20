@@ -103,17 +103,30 @@ def main():
 
     # Check if we should use TPU multiprocessing
     if is_tpu:
+        logger.info("TPU detected, launching multi-core training...")
         try:
             import torch_xla.distributed.xla_multiprocessing as xmp
-            # Launch training on all TPU cores
-            logger.info("Launching multi-core TPU training...")
-            xmp.spawn(train_function, args=())
+
+            # Load config to get num_tpu_cores
+            config = ExperimentConfig.from_yaml(args.config)
+            num_cores = config.tpu.num_tpu_cores if hasattr(config.tpu, 'num_tpu_cores') else 8
+
+            logger.info(f"Spawning {num_cores} processes for multi-core TPU training...")
+            # xmp.spawn automatically handles all cores
+            # Don't specify nprocs - let xmp.spawn detect available cores
+            xmp.spawn(train_function, args=(), start_method='fork')
+            logger.info("Multi-core training completed")
+
         except Exception as e:
             logger.error(f"Failed to spawn TPU processes: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             logger.info("Falling back to single-process mode...")
             train_function()
     else:
         # Run single process for CPU/GPU
+        logger.info("Running in CPU/GPU mode (single process)")
         train_function()
 
 

@@ -16,12 +16,27 @@ logger = logging.getLogger(__name__)
 
 def setup_tpu_environment():
     """Setup environment for TPU training."""
-    
-    # Check if running on Google Cloud
-    is_cloud_tpu = os.environ.get('TPU_NAME') is not None
-    
+
+    # Check if running on TPU - try multiple methods
+    is_cloud_tpu = False
+
+    # Method 1: Check TPU_NAME environment variable
+    if os.environ.get('TPU_NAME') is not None:
+        is_cloud_tpu = True
+        logger.info("Detected TPU via TPU_NAME environment variable")
+
+    # Method 2: Check if torch_xla can detect TPU
+    if not is_cloud_tpu:
+        try:
+            import torch_xla.core.xla_model as xm
+            device = xm.xla_device()
+            is_cloud_tpu = True
+            logger.info(f"Detected TPU via torch_xla: {device}")
+        except:
+            pass
+
     if is_cloud_tpu:
-        logger.info("Detected Google Cloud TPU environment")
+        logger.info("Running on TPU environment")
         
         # Install TPU-specific requirements
         try:

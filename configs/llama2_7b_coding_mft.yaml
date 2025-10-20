@@ -58,18 +58,20 @@ data:
 
 tpu:
   use_tpu: true
-  num_tpu_cores: 8  # Use all 8 cores with data parallelism
+  num_tpu_cores: 8  # Use all 8 cores
+  use_fsdp: true  # Enable Fully Sharded Data Parallel for memory efficiency
 
-  # Multi-core data parallel training
+  # Multi-core FSDP training
   # 8 cores × 1 per_core = 8 effective batch size
+  # FSDP shards model parameters, gradients, and optimizer states across cores
   batch_size_per_core: 1
   gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
   mixed_precision: "bf16"
-  gradient_checkpointing: false  # Disabled - not compatible with TPU/XLA in PyTorch 2.5
+  gradient_checkpointing: false  # Keep disabled for now
   xla_use_bf16: true
 
-# Expected training with data parallel across 8 cores:
+# Expected training with FSDP across 8 cores:
 # Steps per epoch: 30000 / 8 = 3750 steps per core
 # Total steps: 3750 × 2 = 7500 steps per core
 # Time estimate: ~2-3 hours on TPU v4-8 (MFT trains only mask scores, faster than FFT)

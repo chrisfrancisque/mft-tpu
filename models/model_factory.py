@@ -232,26 +232,62 @@ class ModelFactory:
         return model, tokenizer
     
     @staticmethod
+    def wrap_model_with_fsdp(model, config):
+        """Wrap model with FSDP for TPU training."""
+        try:
+            from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
+            from torch_xla.distributed.fsdp.wrap import transformer_auto_wrap_policy
+            from transformers.models.llama.modeling_llama import LlamaDecoderLayer
+            import functools
+
+            logger.info("Wrapping model with FSDP for TPU...")
+
+            # Auto-wrap policy for transformer layers
+            # This wraps each transformer block separately for memory efficiency
+            auto_wrap_policy = functools.partial(
+                transformer_auto_wrap_policy,
+                transformer_layer_cls={LlamaDecoderLayer},  # Wrap each LLaMA layer
+            )
+
+            # Wrap model with FSDP
+            fsdp_model = FSDP(
+                model,
+                auto_wrap_policy=auto_wrap_policy,
+            )
+
+            logger.info("Model wrapped with FSDP successfully")
+            return fsdp_model
+
+        except ImportError as e:
+            logger.warning(f"FSDP not available: {e}")
+            logger.warning("Falling back to standard model (may OOM on large models)")
+            return model
+
+    @staticmethod
     def prepare_model_for_fft(config) -> Tuple[MFTModelWrapper, AutoTokenizer]:
         """Prepare a model for full fine-tuning."""
-        
+
         # Load base model
         model, tokenizer = ModelFactory.load_base_model(config)
-        
+
+        # Wrap with FSDP if on TPU and enabled
+        if config.tpu.use_tpu and getattr(config.tpu, 'use_fsdp', True):
+            model = ModelFactory.wrap_model_with_fsdp(model, config)
+
         # Wrap in MFTModelWrapper (even for FFT, for consistency)
         wrapped_model = MFTModelWrapper(model, config)
-        
+
         # For FFT, all parameters should be trainable
         for param in wrapped_model.parameters():
             param.requires_grad = True
-        
+
         param_stats = wrapped_model.get_trainable_params()
         logger.info(
             f"Prepared model for FFT. "
             f"Trainable: {param_stats['trainable']:,} / {param_stats['total']:,} "
             f"({param_stats['percentage']:.2f}%)"
         )
-        
+
         return wrapped_model, tokenizer
     
     @staticmethod
