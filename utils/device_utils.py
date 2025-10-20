@@ -72,11 +72,14 @@ class DeviceManager:
         """Check if TPU is actually available"""
         if not TPU_AVAILABLE:
             return False
-        
+
+        # Don't call xla_device() here - it will be called later in _setup_tpu()
+        # Just check if we're in a TPU environment
         try:
-            import torch_xla.core.xla_model as xm
-            _ = xm.xla_device()
-            return True
+            # Check for TPU indicators without initializing XLA
+            return (os.path.exists('/dev/accel0') or
+                    'TPU' in os.environ.get('ACCELERATOR_TYPE', '') or
+                    os.environ.get('TPU_NAME') is not None)
         except:
             return False
         

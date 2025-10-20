@@ -113,8 +113,8 @@ def main():
 
             logger.info(f"Spawning {num_cores} processes for multi-core TPU training...")
             # xmp.spawn automatically handles all cores
-            # Don't specify nprocs - let xmp.spawn detect available cores
-            xmp.spawn(train_function, args=(), start_method='fork')
+            # Use 'spawn' instead of 'fork' to avoid XLA initialization issues
+            xmp.spawn(train_function, args=())
             logger.info("Multi-core training completed")
 
         except Exception as e:

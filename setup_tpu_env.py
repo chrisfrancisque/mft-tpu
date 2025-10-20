@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def setup_tpu_environment():
     """Setup environment for TPU training."""
 
-    # Check if running on TPU - try multiple methods
+    # Check if running on TPU - DO NOT initialize XLA device before spawn!
     is_cloud_tpu = False
 
     # Method 1: Check TPU_NAME environment variable
@@ -25,13 +25,14 @@ def setup_tpu_environment():
         is_cloud_tpu = True
         logger.info("Detected TPU via TPU_NAME environment variable")
 
-    # Method 2: Check if torch_xla can detect TPU
+    # Method 2: Check if torch_xla is importable (but don't call xla_device yet!)
     if not is_cloud_tpu:
         try:
-            import torch_xla.core.xla_model as xm
-            device = xm.xla_device()
-            is_cloud_tpu = True
-            logger.info(f"Detected TPU via torch_xla: {device}")
+            import torch_xla
+            # Check for TPU environment indicators without initializing XLA
+            if os.path.exists('/dev/accel0') or 'TPU' in os.environ.get('ACCELERATOR_TYPE', ''):
+                is_cloud_tpu = True
+                logger.info("Detected TPU via system indicators")
         except:
             pass
 
