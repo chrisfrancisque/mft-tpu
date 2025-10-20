@@ -25,7 +25,7 @@ _global_args = None
 
 
 def train_function(index=None):
-    """Training function that can be spawned on multiple TPU cores."""
+    """Training function that can be spawned on multiple TPU cores ."""
     global _global_args
     args = _global_args
 
