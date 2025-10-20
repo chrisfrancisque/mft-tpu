@@ -39,11 +39,10 @@ data:
 
 tpu:
   use_tpu: true
-  num_tpu_cores: 8  # TPU v4-8
+  num_tpu_cores: 1  # Use only 1 core to avoid memory fragmentation issues
 
-  # TPU v4-8 memory constraints force smaller batch size
-  # 8 cores × 1 per_core × 1 accumulation = 8 effective batch size
-  # This is smaller than paper's 128, but necessary to fit in memory
+  # Single core training to fit in TPU v4-8 memory
+  # 1 core × 1 per_core × 1 accumulation = 1 effective batch size
   batch_size_per_core: 1
   gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
 
@@ -55,6 +54,6 @@ tpu:
   xla_use_bf16: true
 
 # Expected training:
-# Steps per epoch: 30000 / 8 = 3750 steps (vs paper's 234 with batch=128)
-# Total steps: 3750 × 2 = 7500 steps
-# Time estimate: ~3-4 hours on TPU v4-8 (longer due to smaller batch size)
+# Steps per epoch: 30000 / 1 = 30000 steps (vs paper's 234 with batch=128)
+# Total steps: 30000 × 2 = 60000 steps
+# Time estimate: ~12-16 hours on TPU v4-8 single core (very slow but should work)
