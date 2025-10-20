@@ -20,21 +20,15 @@ import setup_tpu_env
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global args for TPU multiprocessing
-_global_args = None
 
-
-def train_function(index=None):
-    """Training function that can be spawned on multiple TPU cores ."""
-    global _global_args
-    args = _global_args
-
+def train_function(index=None, config_path=None, output_dir=None, resume_from=None):
+    """Training function that can be spawned on multiple TPU cores."""
     # Load configuration
-    config = ExperimentConfig.from_yaml(args.config)
+    config = ExperimentConfig.from_yaml(config_path)
     config.experiment_type = "fft"  # Ensure FFT mode
 
-    if args.output_dir:
-        config.training.output_dir = args.output_dir
+    if output_dir:
+        config.training.output_dir = output_dir
 
     # Validate config
     config.validate()
@@ -69,12 +63,12 @@ def train_function(index=None):
     )
 
     # Resume from checkpoint if specified
-    if args.resume_from:
+    if resume_from:
         if device_manager.is_main_process:
-            logger.info(f"Resuming from checkpoint: {args.resume_from}")
+            logger.info(f"Resuming from checkpoint: {resume_from}")
         ModelFactory.load_checkpoint(
             model=model,
-            checkpoint_path=args.resume_from,
+            checkpoint_path=resume_from,
             optimizer=trainer.optimizer
         )
 
@@ -88,15 +82,11 @@ def train_function(index=None):
 
 
 def main():
-    global _global_args
-
     parser = argparse.ArgumentParser(description="Full Fine-Tuning Training")
     parser.add_argument('--config', type=str, required=True, help='Path to config YAML file')
     parser.add_argument('--output_dir', type=str, help='Override output directory')
     parser.add_argument('--resume_from', type=str, help='Resume from checkpoint')
     args = parser.parse_args()
-
-    _global_args = args
 
     # Setup TPU environment if available
     is_tpu = setup_tpu_env.setup_tpu_environment()
@@ -107,14 +97,13 @@ def main():
         try:
             import torch_xla.distributed.xla_multiprocessing as xmp
 
-            # Load config to get num_tpu_cores
-            config = ExperimentConfig.from_yaml(args.config)
-            num_cores = config.tpu.num_tpu_cores if hasattr(config.tpu, 'num_tpu_cores') else 8
-
-            logger.info(f"Spawning {num_cores} processes for multi-core TPU training...")
-            # xmp.spawn automatically handles all cores
-            # Use 'spawn' instead of 'fork' to avoid XLA initialization issues
-            xmp.spawn(train_function, args=())
+            logger.info(f"Spawning processes for multi-core TPU training...")
+            # Pass arguments through xmp.spawn's args parameter
+            # xmp.spawn calls: train_function(index, *args)
+            xmp.spawn(
+                train_function,
+                args=(args.config, args.output_dir, args.resume_from)
+            )
             logger.info("Multi-core training completed")
 
         except Exception as e:
@@ -123,11 +112,19 @@ def main():
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             logger.info("Falling back to single-process mode...")
-            train_function()
+            train_function(
+                config_path=args.config,
+                output_dir=args.output_dir,
+                resume_from=args.resume_from
+            )
     else:
         # Run single process for CPU/GPU
         logger.info("Running in CPU/GPU mode (single process)")
-        train_function()
+        train_function(
+            config_path=args.config,
+            output_dir=args.output_dir,
+            resume_from=args.resume_from
+        )
 
 
 if __name__ == "__main__":

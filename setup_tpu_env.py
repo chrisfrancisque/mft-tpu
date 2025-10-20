@@ -94,14 +94,20 @@ def get_tpu_config() -> dict:
         'tpu_project': os.environ.get('TPU_PROJECT'),
         'num_cores': 8,  # v4-8 has 8 cores
     }
-    
+
     # Try to detect actual number of cores
     try:
-        import torch_xla.core.xla_model as xm
-        config['num_cores'] = xm.xrt_world_size()
-    except:
-        pass
-    
+        # Use new runtime API
+        import torch_xla.runtime as xr
+        config['num_cores'] = xr.world_size()
+    except (ImportError, AttributeError):
+        # Fallback to old API
+        try:
+            import torch_xla.core.xla_model as xm
+            config['num_cores'] = xm.xrt_world_size()
+        except:
+            pass
+
     return config
 
 

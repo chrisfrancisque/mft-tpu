@@ -88,15 +88,24 @@ class DeviceManager:
         logger.info("Initializing TPU")
 
         device = xm.xla_device()
-        world_size = xm.xrt_world_size()
-        rank = xm.get_ordinal()
-        is_main = xm.is_master_ordinal()
+
+        # Use new runtime API instead of deprecated xrt_world_size/get_ordinal
+        try:
+            import torch_xla.runtime as xr
+            world_size = xr.world_size()
+            rank = xr.global_ordinal()
+        except (ImportError, AttributeError):
+            # Fallback to old API if new one not available
+            world_size = xm.xrt_world_size()
+            rank = xm.get_ordinal()
+
+        is_main = rank == 0
 
         logger.info(f"TPU initialized: rank {rank}/{world_size}")
 
         return DeviceConfig(
-            device_type = 'tpu', 
-            device = device, 
+            device_type = 'tpu',
+            device = device,
             is_distributed = world_size > 1,
             world_size= world_size,
             rank = rank,
