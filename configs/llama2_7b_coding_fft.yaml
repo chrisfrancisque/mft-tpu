@@ -20,8 +20,8 @@ training:
   lr_scheduler_type: "linear"
   weight_decay: 0.0
   logging_steps: 10  # Log metrics for monitoring
-  save_steps: 10000  # Save only at end (>468 total steps)
-  eval_steps: 234  # Evaluate at end of each epoch
+  save_steps: 1000  # Save at end only (>938 total steps)
+  eval_steps: 469  # Evaluate once per epoch (469 steps/epoch with batch=64)
   seed: 42
 
 data:
@@ -42,20 +42,22 @@ tpu:
   num_tpu_cores: 8  # Use all 8 cores
   use_fsdp: true  # Enable Fully Sharded Data Parallel for memory efficiency
 
-  # Multi-core FSDP training
-  # 8 cores × 1 per_core = 8 effective batch size
+  # Multi-core FSDP training - OPTIMIZED for paper replication
+  # 8 cores × 4 per_core × 2 grad_accum = 64 effective batch size
   # FSDP shards model parameters, gradients, and optimizer states across cores
-  batch_size_per_core: 1
-  gradient_accumulation_steps: 1  # No gradient accumulation - XLA can't handle it
+  batch_size_per_core: 4  # Increased from 1 (FSDP prevents OOM)
+  gradient_accumulation_steps: 2  # Accumulate gradients for larger effective batch
 
   # TPU optimization
-  mixed_precision: "bf16"  # bfloat16 for TPU
-  gradient_checkpointing: false  # Keep disabled for now
+  mixed_precision: "bf16"  # bfloat16 for TPU (computation only, params in fp32)
+  gradient_checkpointing: false  # Keep disabled for speed
 
   # XLA settings
   xla_use_bf16: true
 
-# Expected training with data parallel across 8 cores:
-# Steps per epoch: 30000 / 8 = 3750 steps per core
-# Total steps: 3750 × 2 = 7500 steps per core
-# Time estimate: ~3-4 hours on TPU v4-8 with proper data parallelism
+# Expected training with optimized batch size:
+# Effective batch per step: 4 × 8 × 2 = 64 (closer to paper's 128-256)
+# Steps per epoch: 30000 / 64 = 469 steps
+# Total steps: 469 × 2 = 938 steps
+# Time estimate: ~6-8 sec/step × 938 = ~90-120 minutes per epoch = 3-4 hours total
+# Better convergence due to larger batch matching paper's training dynamics
