@@ -239,8 +239,8 @@ def main():
     parser.add_argument(
         '--username',
         type=str,
-        default='chrisfrancisque',
-        help='HuggingFace username (default: chrisfrancisque)'
+        default='Chrisfrancisque',
+        help='HuggingFace username (default: Chrisfrancisque)'
     )
     parser.add_argument(
         '--private',

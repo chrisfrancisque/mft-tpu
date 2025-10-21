@@ -45,17 +45,17 @@ if [ -n "$TRAINING_LOG" ]; then
     python3 scripts/upload_to_hf.py \
         --model_path "$MODEL_DIR" \
         --repo_name "llama2-7b-coding-fft" \
-        --username "chrisfrancisque" \
+        --username "Chrisfrancisque" \
         --training_log "$TRAINING_LOG"
 else
     python3 scripts/upload_to_hf.py \
         --model_path "$MODEL_DIR" \
         --repo_name "llama2-7b-coding-fft" \
-        --username "chrisfrancisque"
+        --username "Chrisfrancisque"
 fi
 
 echo ""
 echo "=========================================="
 echo "Upload Complete!"
-echo "Model URL: https://huggingface.co/chrisfrancisque/llama2-7b-coding-fft"
+echo "Model URL: https://huggingface.co/Chrisfrancisque/llama2-7b-coding-fft"
 echo "=========================================="
