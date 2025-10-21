@@ -48,6 +48,8 @@ tensorboard/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+# But allow notebooks in the notebooks/ directory
+!notebooks/*.ipynb
 
 # Environment
 .env
