@@ -87,35 +87,46 @@ class FFTTrainer(BaseTrainer):
         # Handle FSDP unwrapping on TPU
         if self.device_manager.is_tpu:
             try:
-                from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
+                from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP, consolidate_sharded_model_checkpoints
                 import torch_xla.core.xla_model as xm
 
                 if isinstance(model, FSDP):
-                    logger.info("Detected FSDP model, using proper consolidation...")
+                    logger.info("Detected FSDP model, consolidating shards...")
 
-                    # Consolidate full state dict on master rank only
-                    # This gathers all sharded parameters
-                    with FSDP.state_dict_type(
-                        model,
-                        state_dict_type="full",  # Get full consolidated state dict
-                    ):
-                        if xm.is_master_ordinal():
-                            # Master rank gets the full model
-                            state_dict = model.state_dict()
+                    # Use FSDP's built-in consolidation if available
+                    try:
+                        # Get consolidated state dict on rank 0
+                        consolidated_state_dict = consolidate_sharded_model_checkpoints(
+                            ckpt_prefix=str(self.output_dir / "temp_shard"),
+                            ckpt_suffix="_rank-*-of-*.pth",
+                        )
 
-                            # Get the underlying module (unwrap FSDP wrapper)
+                        if xm.is_master_ordinal() and consolidated_state_dict is not None:
+                            # Get underlying module
                             unwrapped_model = model.module
-
-                            # Load the consolidated state dict
-                            unwrapped_model.load_state_dict(state_dict)
-
-                            logger.info("Consolidated FSDP shards on master rank")
+                            unwrapped_model.load_state_dict(consolidated_state_dict)
+                            logger.info("Loaded consolidated state dict")
                             return unwrapped_model
                         else:
-                            # Non-master ranks don't save
-                            logger.info("Non-master rank, skipping save")
                             return None
+
+                    except (ImportError, AttributeError, TypeError):
+                        # Fallback: manually consolidate by moving to CPU
+                        logger.info("Using manual consolidation (moving to CPU)...")
+
+                        if not xm.is_master_ordinal():
+                            return None
+
+                        # Get underlying module
+                        unwrapped_model = model.module
+
+                        # Force all parameters to CPU
+                        unwrapped_model = unwrapped_model.cpu()
+
+                        logger.info("Moved model to CPU for saving")
+                        return unwrapped_model
+
             except (ImportError, AttributeError) as e:
-                logger.warning(f"FSDP consolidation failed: {e}, falling back to direct save")
+                logger.warning(f"FSDP handling failed: {e}, using model as-is")
 
         return model
