@@ -52,9 +52,19 @@ if [ $? -eq 0 ]; then
     echo "=========================================="
 
     # List saved files
+    # The actual output path includes experiment_type/domain/experiment_name
+    # For llama2_7b_coding_fft config: outputs/llama2_7b_coding_fft/fft/coding/llama2_7b_coding_fft_paper_replication/
     echo ""
     echo "Saved checkpoint:"
-    ls -lh "$LOCAL_OUTPUT/final_fft_model/"
+    ACTUAL_OUTPUT=$(find "$LOCAL_OUTPUT" -name "final_fft_model" -type d 2>/dev/null | head -1)
+    if [ -n "$ACTUAL_OUTPUT" ]; then
+        echo "Found at: $ACTUAL_OUTPUT"
+        ls -lh "$ACTUAL_OUTPUT/"
+    else
+        echo "Warning: Could not find final_fft_model directory"
+        echo "Directory structure:"
+        find "$LOCAL_OUTPUT" -type d 2>/dev/null
+    fi
 
     echo ""
     echo "Disk usage:"
