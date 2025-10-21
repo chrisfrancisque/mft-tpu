@@ -132,19 +132,23 @@ def upload_model(
     # Initialize API
     api = HfApi()
 
-    # Create repository
+    # Create repository - this must succeed before upload
+    print(f"\nCreating repository: {repo_id}")
     try:
-        print(f"\nCreating repository: {repo_id}")
-        create_repo(
+        url = create_repo(
             repo_id=repo_id,
             private=private,
             exist_ok=True,
             repo_type="model"
         )
-        print("✓ Repository created/verified")
+        print(f"✓ Repository created/verified: {url}")
     except Exception as e:
-        print(f"Warning: Could not create repo: {e}")
-        print("Repository may already exist, continuing...")
+        print(f"\n✗ Failed to create repository: {e}")
+        print("\nTroubleshooting:")
+        print("1. Make sure you're logged in: huggingface-cli login")
+        print("2. Verify your token has write permissions")
+        print("3. Check repo name doesn't already exist as private repo")
+        raise
 
     # Load training metrics if available
     training_metrics = {}
