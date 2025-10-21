@@ -60,19 +60,62 @@ class FFTTrainer(BaseTrainer):
     def finalize_training(self):
         """Finalize FFT training."""
         logger.info("Finalizing FFT training")
-        
+
         # Save final model
         final_dir = self.output_dir / "final_fft_model"
         final_dir.mkdir(parents=True, exist_ok=True)
-        
-        if hasattr(self.model, 'save_pretrained'):
-            self.model.save_pretrained(str(final_dir))
+
+        # Properly unwrap and save FSDP model
+        model_to_save = self._unwrap_model_for_saving()
+
+        if model_to_save is not None:
+            model_to_save.save_pretrained(str(final_dir))
+            self.tokenizer.save_pretrained(str(final_dir))
+            logger.info(f"Saved final FFT model to {final_dir}")
         else:
-            # For wrapped models
-            if hasattr(self.model, 'base_model'):
-                self.model.base_model.save_pretrained(str(final_dir))
-            else:
-                torch.save(self.model.state_dict(), final_dir / 'pytorch_model.bin')
-        
-        self.tokenizer.save_pretrained(str(final_dir))
-        logger.info(f"Saved final FFT model to {final_dir}")
+            logger.warning("Skipping save on non-master rank")
+
+    def _unwrap_model_for_saving(self):
+        """Unwrap model from FSDP and MFT wrappers for saving."""
+        model = self.model
+
+        # Unwrap from MFTModelWrapper if present
+        if hasattr(model, 'base_model'):
+            logger.info("Unwrapping from MFTModelWrapper...")
+            model = model.base_model
+
+        # Handle FSDP unwrapping on TPU
+        if self.device_manager.is_tpu:
+            try:
+                from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
+                import torch_xla.core.xla_model as xm
+
+                if isinstance(model, FSDP):
+                    logger.info("Detected FSDP model, using proper consolidation...")
+
+                    # Consolidate full state dict on master rank only
+                    # This gathers all sharded parameters
+                    with FSDP.state_dict_type(
+                        model,
+                        state_dict_type="full",  # Get full consolidated state dict
+                    ):
+                        if xm.is_master_ordinal():
+                            # Master rank gets the full model
+                            state_dict = model.state_dict()
+
+                            # Get the underlying module (unwrap FSDP wrapper)
+                            unwrapped_model = model.module
+
+                            # Load the consolidated state dict
+                            unwrapped_model.load_state_dict(state_dict)
+
+                            logger.info("Consolidated FSDP shards on master rank")
+                            return unwrapped_model
+                        else:
+                            # Non-master ranks don't save
+                            logger.info("Non-master rank, skipping save")
+                            return None
+            except (ImportError, AttributeError) as e:
+                logger.warning(f"FSDP consolidation failed: {e}, falling back to direct save")
+
+        return model
